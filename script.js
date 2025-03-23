@@ -26,48 +26,71 @@ searchBox.addEventListener("keypress", function (event) {
 function getWeather(city) {
     fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}`)
         .then(response => {
-            if (!response.ok) throw new Error("Invalid location!");
+            if (!response.ok) {
+                if (response.status === 400) throw new Error("Invalid location! Please check the city name.");
+                if (response.status === 403) throw new Error("API limit exceeded. Try again later.");
+                throw new Error("Failed to fetch weather data.");
+            }
             return response.json();
         })
         .then(data => {
+            if (!data.location || !data.current) throw new Error("Incomplete weather data received.");
+
             document.getElementById("location").innerText = `${data.location.name}, ${data.location.country}`;
             document.getElementById("temperature").innerText = `${Math.round(data.current.temp_c)}°C`;
             document.getElementById("description").innerText = data.current.condition.text;
             document.getElementById("humidity").innerText = `Humidity: ${data.current.humidity}%`;
             weatherIcon.src = `https:${data.current.condition.icon}`;
         })
-        .catch(error => alert(error.message));
+        .catch(error => showAlert(error.message));
 }
 
 // Function to Fetch 7-Day Forecast
 function getForecast(city) {
     fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=7`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 400) throw new Error("Invalid location for forecast.");
+                if (response.status === 403) throw new Error("API limit exceeded. Try again later.");
+                throw new Error("Failed to fetch forecast data.");
+            }
+            return response.json();
+        })
         .then(data => {
+            if (!data.forecast || !data.forecast.forecastday) throw new Error("Incomplete forecast data received.");
+
             forecastContainer.innerHTML = "";
+
             data.forecast.forecastday.forEach(day => {
                 const forecastCard = document.createElement("div");
                 forecastCard.className = "forecast-card";
+                
                 forecastCard.innerHTML = `
-                    <p>${new Date(day.date).toDateString()}</p>
-                    <img src="https:${day.day.condition.icon}" alt="Weather Icon">
-                    <p>${Math.round(day.day.avgtemp_c)}°C - ${day.day.condition.text}</p>
+                    <p class="forecast-date">${formatDate(day.date)}</p>
+                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
+                    <p class="forecast-temp">${Math.round(day.day.avgtemp_c)}°C</p>
+                    <p class="forecast-condition">${day.day.condition.text}</p>
                 `;
+
                 forecastContainer.appendChild(forecastCard);
             });
         })
-        .catch(error => console.log("Fetch error: " + error.message));
+        .catch(error => showAlert(error.message));
 }
 
-forecastContainer.innerHTML += `
-    <div class="forecast-item">
-        <p>${date}</p>
-        <img class="forecast-icon" src="${icon}" alt="${condition}">
-        <p class="forecast-temp">${temp}°C - ${condition}</p>
-    </div>
-`;
+// Function to Format Date for Better Display
+function formatDate(dateString) {
+    const options = { weekday: "short", month: "short", day: "numeric" };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+}
 
 // Function to show alerts to the user
 function showAlert(message) {
-    alert(message);
+    const alertBox = document.getElementById("alert-box");
+    alertBox.innerText = message;
+    alertBox.style.display = "block";
+
+    setTimeout(() => {
+        alertBox.style.display = "none";
+    }, 3000);
 }
