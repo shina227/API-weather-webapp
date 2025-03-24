@@ -1,8 +1,17 @@
-const apiKey = "bd6f4c8f0148433aae0113023252303";
+let apiKey = "";
 const searchButton = document.getElementById("search-btn");
 const searchBox = document.getElementById("city-input");
 const weatherIcon = document.getElementById("weather-icon");
 const forecastContainer = document.getElementById("forecast-container");
+
+// Fetch API key from server
+fetch("/api/key")
+    .then(response => response.json())
+    .then(data => {
+        apiKey = data.apiKey;
+        console.log("API Key Loaded:", apiKey);
+    })
+    .catch(error => console.error("Error loading API key:", error));
 
 // When the user clicks the search button, fetch weather data for the entered city
 searchButton.addEventListener("click", function () {
