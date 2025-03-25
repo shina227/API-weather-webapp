@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({ origin: "*" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+console.log("API Key Loaded:", process.env.API_KEY); // For debugging
+
 // API route to send the API key successfully
 app.get("/api/key", (req, res) => {
     res.json({ apiKey: process.env.API_KEY });

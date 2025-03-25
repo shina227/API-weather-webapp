@@ -15,19 +15,17 @@ fetch("/api/key")
 
 // When the user clicks the search button, fetch weather data for the entered city
 searchButton.addEventListener("click", function () {
+    if (!apiKey) {
+        showAlert("API Key not loaded! Try again.");
+        return;
+    }
+    
     const city = searchBox.value.trim();
     if (city) {
         getWeather(city);
         getForecast(city);
     } else {
         showAlert("Please enter a city name!");
-    }
-});
-
-// Allow Enter Key to search
-searchBox.addEventListener("keypress", function (event) {
-    if (event.key === "Enter") {
-        searchButton.click();
     }
 });
 
