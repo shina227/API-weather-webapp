@@ -13,7 +13,7 @@ fetch("/api/key")
     })
     .catch(error => console.error("Error loading API key:", error));
 
-// When the user clicks the search button, fetch weather data for the entered city
+// Event listener for search button click
 searchButton.addEventListener("click", function () {
     if (!apiKey) {
         showAlert("API Key not loaded! Try again.");
@@ -29,60 +29,99 @@ searchButton.addEventListener("click", function () {
     }
 });
 
+// Allow pressing "Enter" to trigger search
+searchBox.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        searchButton.click();
+    }
+});
+
 // Function to fetch current weather
 function getWeather(city) {
+    const cacheKey = `weather_${city}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+
+    // Check if we have valid cached data (less than 10 mins old)
+    if (cachedData && cacheTime && (Date.now() - cacheTime < 10 * 60 * 1000)) {
+        console.log("Using cached weather data for:", city);
+        updateWeatherUI(JSON.parse(cachedData));
+        return;
+    }
+
+    // Fetch new data if no valid cache
     fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${city}`)
         .then(response => {
-            if (!response.ok) {
-                if (response.status === 400) throw new Error("Invalid location! Please check the city name.");
-                if (response.status === 403) throw new Error("API limit exceeded. Try again later.");
-                throw new Error("Failed to fetch weather data.");
-            }
+            if (!response.ok) throw new Error("Failed to fetch weather data.");
             return response.json();
         })
         .then(data => {
             if (!data.location || !data.current) throw new Error("Incomplete weather data received.");
+            
+            // Save new data to cache
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            localStorage.setItem(`${cacheKey}_time`, Date.now());
 
-            document.getElementById("location").innerText = `${data.location.name}, ${data.location.country}`;
-            document.getElementById("temperature").innerText = `${Math.round(data.current.temp_c)}°C`;
-            document.getElementById("description").innerText = data.current.condition.text;
-            document.getElementById("humidity").innerText = `Humidity: ${data.current.humidity}%`;
-            weatherIcon.src = `https:${data.current.condition.icon}`;
+            updateWeatherUI(data);
         })
         .catch(error => showAlert(error.message));
 }
 
+// Function to update weather UI
+function updateWeatherUI(data) {
+    document.getElementById("location").innerText = `${data.location.name}, ${data.location.country}`;
+    document.getElementById("temperature").innerText = `${Math.round(data.current.temp_c)}°C`;
+    document.getElementById("description").innerText = data.current.condition.text;
+    document.getElementById("humidity").innerText = `Humidity: ${data.current.humidity}%`;
+    weatherIcon.src = `https:${data.current.condition.icon}`;
+}
+
 // Function to Fetch 7-Day Forecast
 function getForecast(city) {
+    const cacheKey = `forecast_${city}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    const cacheTime = localStorage.getItem(`${cacheKey}_time`);
+
+    if (cachedData && cacheTime && (Date.now() - Number(cacheTime) < 10 * 60 * 1000)) {
+        console.log("Using cached forecast data for:", city);
+        updateForecastUI(JSON.parse(cachedData));
+        return;
+    }
+
     fetch(`https://api.weatherapi.com/v1/forecast.json?key=${apiKey}&q=${city}&days=7`)
         .then(response => {
-            if (!response.ok) {
-                if (response.status === 400) throw new Error("Invalid location for forecast.");
-                if (response.status === 403) throw new Error("API limit exceeded. Try again later.");
-                throw new Error("Failed to fetch forecast data.");
-            }
+            if (!response.ok) throw new Error("Failed to fetch forecast data.");
             return response.json();
         })
         .then(data => {
             if (!data.forecast || !data.forecast.forecastday) throw new Error("Incomplete forecast data received.");
 
-            forecastContainer.innerHTML = "";
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            localStorage.setItem(`${cacheKey}_time`, Date.now());
 
-            data.forecast.forecastday.forEach(day => {
-                const forecastCard = document.createElement("div");
-                forecastCard.className = "forecast-card";
-                
-                forecastCard.innerHTML = `
-                    <p class="forecast-date">${formatDate(day.date)}</p>
-                    <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
-                    <p class="forecast-temp">${Math.round(day.day.avgtemp_c)}°C</p>
-                    <p class="forecast-condition">${day.day.condition.text}</p>
-                `;
-
-                forecastContainer.appendChild(forecastCard);
-            });
+            updateForecastUI(data);
         })
         .catch(error => showAlert(error.message));
+}
+
+// Function to update forecast UI
+function updateForecastUI(data) {
+    forecastContainer.innerHTML = "";
+
+    data.forecast.forecastday.forEach(day => {
+        const forecastCard = document.createElement("div");
+        forecastCard.className = "forecast-card";
+
+        forecastCard.innerHTML = `
+            <p class="forecast-date">${formatDate(day.date)}</p>
+            <img class="forecast-icon" src="https:${day.day.condition.icon}" alt="${day.day.condition.text}">
+            <p class="forecast-temp">${Math.round(day.day.avgtemp_c)}°C</p>
+            <p class="forecast-condition">${day.day.condition.text}</p>
+        `;
+
+        forecastContainer.appendChild(forecastCard);
+    });
 }
 
 // Function to Format Date for Better Display
