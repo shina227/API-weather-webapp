@@ -70,7 +70,7 @@ node server.js
 Install Nginx and set up load balancing:
 ```sh
 sudo apt install nginx
-sudo nano /etc/nginx/sites-available/weatherapp
+sudo nano /etc/nginx/sites-available/weather-app
 ```
 
 Add this configuration:
@@ -113,16 +113,16 @@ sudo tail -f /var/log/nginx/error.log
 Your app should now be accessible at `http://Lb01_IP`! 🎉
 
 ---
-## 📝 Notes
+## Notes
 - The `.env` file is **ignored by Git** to keep the API key secure.
 - If the app doesn’t work, restart the server with `node server.js`.
 - Ensure all servers are running correctly and the load balancer is distributing traffic evenly.
 
 ---
-## 📜 License
+## License
 This project is open-source and available under the [MIT License](LICENSE).
 
 ---
-### 🎯 Author: **Atete Mpeta Shina**
+### Author: **Atete Mpeta Shina**
 Happy Coding! 🚀
 
